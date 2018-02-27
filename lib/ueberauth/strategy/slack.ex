@@ -1,4 +1,3 @@
-require IEx
 defmodule Ueberauth.Strategy.Slack do
   @moduledoc """
   Implements an ÜeberauthSlack strategy for authentication with slack.com.
@@ -74,10 +73,8 @@ defmodule Ueberauth.Strategy.Slack do
     token = apply(module, :get_token!, [params, options])
 
     if token.access_token == nil do
-      IEx.pry
       set_errors!(conn, [error(token.other_params["error"], token.other_params["error_description"])])
     else
-      IEx.pry
       conn
       |> store_token(token)
       |> fetch_auth(token)
@@ -192,10 +189,8 @@ defmodule Ueberauth.Strategy.Slack do
         set_errors!(conn, [error("token", "unauthorized")])
       {:ok, %OAuth2.Response{status_code: status_code, body: auth}} when status_code in 200..399 ->
         if auth["ok"] do
-          IEx.pry
           put_private(conn, :slack_auth, auth)
         else
-          IEx.pry
           set_errors!(conn, [error(auth["error"], auth["error"])])
         end
       {:error, %OAuth2.Error{reason: reason}} ->
