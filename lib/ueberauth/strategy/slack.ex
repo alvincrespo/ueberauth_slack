@@ -1,3 +1,4 @@
+require IEx
 defmodule Ueberauth.Strategy.Slack do
   @moduledoc """
   Implements an ÜeberauthSlack strategy for authentication with slack.com.
@@ -45,6 +46,16 @@ defmodule Ueberauth.Strategy.Slack do
     redirect!(conn, apply(module, :authorize_url!, [opts]))
   end
 
+  def get_redirect_uri(%Plug.Conn{} = conn) do
+    config = Application.get_env(:ueberauth, Ueberauth)
+    redirect_uri = config |> Keyword.get(:redirect_uri)
+
+    case is_nil(redirect_uri) do
+      true -> callback_url(conn)
+      false -> redirect_uri
+    end
+  end
+
   # When handling the callback, if there was no errors we need to
   # make two calls. The first, to fetch the slack auth is so that we can get hold of
   # the user id so we can make a query to fetch the user info.
@@ -53,16 +64,20 @@ defmodule Ueberauth.Strategy.Slack do
   def handle_callback!(%Plug.Conn{params: %{"code" => code}} = conn) do
     module  = option(conn, :oauth2_module)
     params  = [code: code]
+    redirect_uri = conn |> get_redirect_uri
     options = %{
       options: [
-        client_options: [redirect_uri: callback_url(conn)]
+        client_options: [redirect_uri: redirect_uri]
       ]
     }
+
     token = apply(module, :get_token!, [params, options])
 
     if token.access_token == nil do
+      IEx.pry
       set_errors!(conn, [error(token.other_params["error"], token.other_params["error_description"])])
     else
+      IEx.pry
       conn
       |> store_token(token)
       |> fetch_auth(token)
@@ -177,8 +192,10 @@ defmodule Ueberauth.Strategy.Slack do
         set_errors!(conn, [error("token", "unauthorized")])
       {:ok, %OAuth2.Response{status_code: status_code, body: auth}} when status_code in 200..399 ->
         if auth["ok"] do
+          IEx.pry
           put_private(conn, :slack_auth, auth)
         else
+          IEx.pry
           set_errors!(conn, [error(auth["error"], auth["error"])])
         end
       {:error, %OAuth2.Error{reason: reason}} ->
